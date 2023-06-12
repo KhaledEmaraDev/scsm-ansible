@@ -1,0 +1,45 @@
+- hosts: all
+  tasks:
+    - name: Copy Deb Package
+      copy:
+        src: ~/scsm-7.12.0.8000-Ubuntu22_x64.deb
+        dest: /tmp/scsm-7.12.0.8000-Ubuntu22_x64.deb
+
+    - name: Install Dependencies
+      become: yes
+      apt:
+        pkg:
+          - libc6-i386
+          - auditd
+
+    - name: Install Deb Package
+      become: yes
+      shell: "dpkg -i /tmp/scsm-7.12.0.8000-Ubuntu22_x64.deb"
+
+    - name: Enable Agent
+      become: yes
+      shell: "update-rc.d scsm start 20 3 5 . stop 20 0 1 2 6 ."
+
+    - name: Configure Agent Host
+      ansible.builtin.replace:
+        path: /opt/logrhythm/scsm/config/scsm.ini
+        regexp: '^Host=CHANGE_THIS$'
+        replace: 'HOST=10.0.8.122'
+
+    - name: Configure Agent ClientAddress
+      ansible.builtin.replace:
+        path: /opt/logrhythm/scsm/config/scsm.ini
+        regexp: '^ClientAddress=0$'
+        replace: 'ClientAddress={{ip}}'
+
+    - name: Configure Agent ClientPort
+      ansible.builtin.replace:
+        path: /opt/logrhythm/scsm/config/scsm.ini
+        regexp: '^ClientPort=0$'
+        replace: 'ClientPort=3333'
+
+    - name: Restart Service
+      systemd:
+        state: started
+        name: scsm
+        enabled: true
