@@ -1,9 +1,10 @@
 - hosts: all
   tasks:
-    - name: Copy Deb Package
-      copy:
-        src: ~/scsm-7.12.0.8000-Ubuntu22_x64.deb
+    - name: Download Deb Package
+      ansible.builtin.get_url:
+        url: https://github.com/KhaledEmaraDev/scsm-ansible/raw/main/scsm-7.12.0.8000-Ubuntu22_x64.deb
         dest: /tmp/scsm-7.12.0.8000-Ubuntu22_x64.deb
+        mode: '0777'
 
     - name: Install Dependencies
       become: yes
@@ -24,13 +25,18 @@
       ansible.builtin.replace:
         path: /opt/logrhythm/scsm/config/scsm.ini
         regexp: '^Host=CHANGE_THIS$'
-        replace: 'HOST=10.0.8.122'
+        replace: 'Host=158.101.230.147'
+
+    - name: Get Private IP
+      become: yes
+      shell: "ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n'"
+      register: ip_content
 
     - name: Configure Agent ClientAddress
       ansible.builtin.replace:
         path: /opt/logrhythm/scsm/config/scsm.ini
         regexp: '^ClientAddress=0$'
-        replace: 'ClientAddress={{ip}}'
+        replace: 'ClientAddress={{ip_content.stdout}}'
 
     - name: Configure Agent ClientPort
       ansible.builtin.replace:
